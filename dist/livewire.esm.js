@@ -17,9 +17,9 @@ var __copyProps = (to, from, except, desc) => {
 };
 var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target, mod));
 
-// ../alpine/packages/alpinejs/dist/module.cjs.js
+// node_modules/alpinejs/dist/module.cjs.js
 var require_module_cjs = __commonJS({
-  "../alpine/packages/alpinejs/dist/module.cjs.js"(exports, module) {
+  "node_modules/alpinejs/dist/module.cjs.js"(exports, module) {
     var __create2 = Object.create;
     var __defProp2 = Object.defineProperty;
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
@@ -43,8 +43,8 @@ var require_module_cjs = __commonJS({
     };
     var __toESM2 = (mod, isNodeMode, target) => (target = mod != null ? __create2(__getProtoOf2(mod)) : {}, __copyProps2(isNodeMode || !mod || !mod.__esModule ? __defProp2(target, "default", { value: mod, enumerable: true }) : target, mod));
     var __toCommonJS = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
-    var require_shared_cjs_prod = __commonJS2({
-      "node_modules/@vue/shared/dist/shared.cjs.prod.js"(exports2) {
+    var require_shared_cjs = __commonJS2({
+      "node_modules/@vue/shared/dist/shared.cjs.js"(exports2) {
         "use strict";
         Object.defineProperty(exports2, "__esModule", { value: true });
         function makeMap(str, expectsLowerCase) {
@@ -318,8 +318,8 @@ var require_module_cjs = __commonJS({
           "optionalChaining",
           "nullishCoalescingOperator"
         ];
-        var EMPTY_OBJ = {};
-        var EMPTY_ARR = [];
+        var EMPTY_OBJ = Object.freeze({});
+        var EMPTY_ARR = Object.freeze([]);
         var NOOP = () => {
         };
         var NO = () => false;
@@ -452,23 +452,23 @@ var require_module_cjs = __commonJS({
     var require_shared = __commonJS2({
       "node_modules/@vue/shared/index.js"(exports2, module2) {
         "use strict";
-        if (true) {
-          module2.exports = require_shared_cjs_prod();
-        } else {
+        if (false) {
           module2.exports = null;
+        } else {
+          module2.exports = require_shared_cjs();
         }
       }
     });
-    var require_reactivity_cjs_prod = __commonJS2({
-      "node_modules/@vue/reactivity/dist/reactivity.cjs.prod.js"(exports2) {
+    var require_reactivity_cjs = __commonJS2({
+      "node_modules/@vue/reactivity/dist/reactivity.cjs.js"(exports2) {
         "use strict";
         Object.defineProperty(exports2, "__esModule", { value: true });
         var shared = require_shared();
         var targetMap = /* @__PURE__ */ new WeakMap();
         var effectStack = [];
         var activeEffect;
-        var ITERATE_KEY = Symbol("");
-        var MAP_KEY_ITERATE_KEY = Symbol("");
+        var ITERATE_KEY = Symbol("iterate");
+        var MAP_KEY_ITERATE_KEY = Symbol("Map key iterate");
         function isEffect(fn) {
           return fn && fn._isEffect === true;
         }
@@ -558,6 +558,14 @@ var require_module_cjs = __commonJS({
           if (!dep.has(activeEffect)) {
             dep.add(activeEffect);
             activeEffect.deps.push(dep);
+            if (activeEffect.options.onTrack) {
+              activeEffect.options.onTrack({
+                effect: activeEffect,
+                target,
+                type,
+                key
+              });
+            }
           }
         }
         function trigger2(target, type, key, newValue, oldValue, oldTarget) {
@@ -614,6 +622,17 @@ var require_module_cjs = __commonJS({
             }
           }
           const run = (effect4) => {
+            if (effect4.options.onTrigger) {
+              effect4.options.onTrigger({
+                effect: effect4,
+                target,
+                key,
+                type,
+                newValue,
+                oldValue,
+                oldTarget
+              });
+            }
             if (effect4.options.scheduler) {
               effect4.options.scheduler(effect4);
             } else {
@@ -707,7 +726,7 @@ var require_module_cjs = __commonJS({
               if (!hadKey) {
                 trigger2(target, "add", key, value);
               } else if (shared.hasChanged(value, oldValue)) {
-                trigger2(target, "set", key, value);
+                trigger2(target, "set", key, value, oldValue);
               }
             }
             return result;
@@ -715,10 +734,10 @@ var require_module_cjs = __commonJS({
         }
         function deleteProperty(target, key) {
           const hadKey = shared.hasOwn(target, key);
-          target[key];
+          const oldValue = target[key];
           const result = Reflect.deleteProperty(target, key);
           if (result && hadKey) {
-            trigger2(target, "delete", key, void 0);
+            trigger2(target, "delete", key, void 0, oldValue);
           }
           return result;
         }
@@ -743,9 +762,15 @@ var require_module_cjs = __commonJS({
         var readonlyHandlers = {
           get: readonlyGet,
           set(target, key) {
+            {
+              console.warn(`Set operation on key "${String(key)}" failed: target is readonly.`, target);
+            }
             return true;
           },
           deleteProperty(target, key) {
+            {
+              console.warn(`Delete operation on key "${String(key)}" failed: target is readonly.`, target);
+            }
             return true;
           }
         };
@@ -812,13 +837,15 @@ var require_module_cjs = __commonJS({
           if (!hadKey) {
             key = toRaw2(key);
             hadKey = has2.call(target, key);
+          } else {
+            checkIdentityKeys(target, has2, key);
           }
           const oldValue = get3.call(target, key);
           target.set(key, value);
           if (!hadKey) {
             trigger2(target, "add", key, value);
           } else if (shared.hasChanged(value, oldValue)) {
-            trigger2(target, "set", key, value);
+            trigger2(target, "set", key, value, oldValue);
           }
           return this;
         }
@@ -829,20 +856,23 @@ var require_module_cjs = __commonJS({
           if (!hadKey) {
             key = toRaw2(key);
             hadKey = has2.call(target, key);
+          } else {
+            checkIdentityKeys(target, has2, key);
           }
-          get3 ? get3.call(target, key) : void 0;
+          const oldValue = get3 ? get3.call(target, key) : void 0;
           const result = target.delete(key);
           if (hadKey) {
-            trigger2(target, "delete", key, void 0);
+            trigger2(target, "delete", key, void 0, oldValue);
           }
           return result;
         }
         function clear() {
           const target = toRaw2(this);
           const hadItems = target.size !== 0;
+          const oldTarget = shared.isMap(target) ? new Map(target) : new Set(target);
           const result = target.clear();
           if (hadItems) {
-            trigger2(target, "clear", void 0, void 0);
+            trigger2(target, "clear", void 0, void 0, oldTarget);
           }
           return result;
         }
@@ -884,6 +914,10 @@ var require_module_cjs = __commonJS({
         }
         function createReadonlyMethod(type) {
           return function(...args) {
+            {
+              const key = args[0] ? `on key "${args[0]}" ` : ``;
+              console.warn(`${shared.capitalize(type)} operation ${key}failed: target is readonly.`, toRaw2(this));
+            }
             return type === "delete" ? false : this;
           };
         }
@@ -988,6 +1022,13 @@ var require_module_cjs = __commonJS({
         var shallowReadonlyCollectionHandlers = {
           get: /* @__PURE__ */ createInstrumentationGetter(true, true)
         };
+        function checkIdentityKeys(target, has2, key) {
+          const rawKey = toRaw2(key);
+          if (rawKey !== key && has2.call(target, rawKey)) {
+            const type = shared.toRawType(target);
+            console.warn(`Reactive ${type} contains both the raw and reactive versions of the same object${type === `Map` ? ` as keys` : ``}, which can lead to inconsistencies. Avoid differentiating between the raw and reactive versions of an object and only use the reactive version if possible.`);
+          }
+        }
         var reactiveMap = /* @__PURE__ */ new WeakMap();
         var shallowReactiveMap = /* @__PURE__ */ new WeakMap();
         var readonlyMap = /* @__PURE__ */ new WeakMap();
@@ -1026,6 +1067,9 @@ var require_module_cjs = __commonJS({
         }
         function createReactiveObject(target, isReadonly2, baseHandlers, collectionHandlers, proxyMap) {
           if (!shared.isObject(target)) {
+            {
+              console.warn(`value cannot be made reactive: ${String(target)}`);
+            }
             return target;
           }
           if (target["__v_raw"] && !(isReadonly2 && target["__v_isReactive"])) {
@@ -1099,7 +1143,7 @@ var require_module_cjs = __commonJS({
           return new RefImpl(rawValue, shallow);
         }
         function triggerRef(ref2) {
-          trigger2(toRaw2(ref2), "set", "value", void 0);
+          trigger2(toRaw2(ref2), "set", "value", ref2.value);
         }
         function unref(ref2) {
           return isRef(ref2) ? ref2.value : ref2;
@@ -1137,6 +1181,9 @@ var require_module_cjs = __commonJS({
           return new CustomRefImpl(factory);
         }
         function toRefs(object) {
+          if (!isProxy(object)) {
+            console.warn(`toRefs() expects a reactive object but received a plain one.`);
+          }
           const ret = shared.isArray(object) ? new Array(object.length) : {};
           for (const key in object) {
             ret[key] = toRef(object, key);
@@ -1193,7 +1240,9 @@ var require_module_cjs = __commonJS({
           let setter;
           if (shared.isFunction(getterOrOptions)) {
             getter = getterOrOptions;
-            setter = shared.NOOP;
+            setter = () => {
+              console.warn("Write operation failed: computed value is readonly");
+            };
           } else {
             getter = getterOrOptions.get;
             setter = getterOrOptions.set;
@@ -1232,10 +1281,10 @@ var require_module_cjs = __commonJS({
     var require_reactivity = __commonJS2({
       "node_modules/@vue/reactivity/index.js"(exports2, module2) {
         "use strict";
-        if (true) {
-          module2.exports = require_reactivity_cjs_prod();
-        } else {
+        if (false) {
           module2.exports = null;
+        } else {
+          module2.exports = require_reactivity_cjs();
         }
       }
     });
@@ -1327,24 +1376,6 @@ var require_module_cjs = __commonJS({
         cleanup2();
       }];
     }
-    function watch(getter, callback) {
-      let firstTime = true;
-      let oldValue;
-      let effectReference = effect(() => {
-        let value = getter();
-        JSON.stringify(value);
-        if (!firstTime) {
-          queueMicrotask(() => {
-            callback(value, oldValue);
-            oldValue = value;
-          });
-        } else {
-          oldValue = value;
-        }
-        firstTime = false;
-      });
-      return () => release(effectReference);
-    }
     function dispatch3(el, name, detail = {}) {
       el.dispatchEvent(new CustomEvent(name, {
         detail,
@@ -1387,7 +1418,7 @@ var require_module_cjs = __commonJS({
         directives(el, attrs).forEach((handle) => handle());
       });
       let outNestedComponents = (el) => !closestRoot(el.parentElement, true);
-      Array.from(document.querySelectorAll(allSelectors().join(","))).filter(outNestedComponents).forEach((el) => {
+      Array.from(document.querySelectorAll(allSelectors())).filter(outNestedComponents).forEach((el) => {
         initTree(el);
       });
       dispatch3(document, "alpine:initialized");
@@ -1648,12 +1679,8 @@ var require_module_cjs = __commonJS({
           return collapseProxies;
         return Reflect.get(objects.find((obj) => Object.prototype.hasOwnProperty.call(obj, name)) || {}, name, thisProxy);
       },
-      set({ objects }, name, value, thisProxy) {
-        const target = objects.find((obj) => Object.prototype.hasOwnProperty.call(obj, name)) || objects[objects.length - 1];
-        const descriptor = Object.getOwnPropertyDescriptor(target, name);
-        if ((descriptor == null ? void 0 : descriptor.set) && (descriptor == null ? void 0 : descriptor.get))
-          return Reflect.set(target, name, value, thisProxy);
-        return Reflect.set(target, name, value);
+      set({ objects }, name, value) {
+        return Reflect.set(objects.find((obj) => Object.prototype.hasOwnProperty.call(obj, name)) || objects[objects.length - 1], name, value);
       }
     };
     function collapseProxies() {
@@ -1983,7 +2010,7 @@ ${expression ? 'Expression: "' + expression + '"\n\n' : ""}`, el);
     function toParsedDirectives(transformedAttributeMap, originalAttributeOverride) {
       return ({ name, value }) => {
         let typeMatch = name.match(alpineAttributeRegex());
-        let valueMatch = name.match(/:([a-zA-Z0-9\-_:]+)/);
+        let valueMatch = name.match(/:([a-zA-Z0-9\-:]+)/);
         let modifiers = name.match(/\.[^.\]]+(?=[^\]]*$)/g) || [];
         let original = originalAttributeOverride || transformedAttributeMap[name] || name;
         return {
@@ -2001,7 +2028,6 @@ ${expression ? 'Expression: "' + expression + '"\n\n' : ""}`, el);
       "ref",
       "data",
       "id",
-      "anchor",
       "bind",
       "init",
       "for",
@@ -2264,7 +2290,7 @@ ${expression ? 'Expression: "' + expression + '"\n\n' : ""}`, el);
       el._x_hidePromise = el._x_transition ? new Promise((resolve, reject) => {
         el._x_transition.out(() => {
         }, () => resolve(hide));
-        el._x_transitioning && el._x_transitioning.beforeCancel(() => reject({ isFromCancelledTransition: true }));
+        el._x_transitioning.beforeCancel(() => reject({ isFromCancelledTransition: true }));
       }) : Promise.resolve(hide);
       queueMicrotask(() => {
         let closest = closestHide(el);
@@ -2416,12 +2442,11 @@ ${expression ? 'Expression: "' + expression + '"\n\n' : ""}`, el);
     function onlyDuringClone(callback) {
       return (...args) => isCloning && callback(...args);
     }
-    var interceptors = [];
-    function interceptClone(callback) {
-      interceptors.push(callback);
-    }
     function cloneNode(from, to) {
-      interceptors.forEach((i) => i(from, to));
+      if (from._x_dataStack) {
+        to._x_dataStack = from._x_dataStack;
+        to.setAttribute("data-has-alpine-state", true);
+      }
       isCloning = true;
       dontRegisterReactiveSideEffects(() => {
         initTree(to, (el, callback) => {
@@ -2466,6 +2491,13 @@ ${expression ? 'Expression: "' + expression + '"\n\n' : ""}`, el);
       callback();
       overrideEffect(cache);
     }
+    function shouldSkipRegisteringDataDuringClone(el) {
+      if (!isCloning)
+        return false;
+      if (isCloningLegacy)
+        return true;
+      return el.hasAttribute("data-has-alpine-state");
+    }
     function bind(el, name, value, modifiers = []) {
       if (!el._x_bindings)
         el._x_bindings = reactive({});
@@ -2496,11 +2528,7 @@ ${expression ? 'Expression: "' + expression + '"\n\n' : ""}`, el);
           el.value = value;
         }
         if (window.fromModel) {
-          if (typeof value === "boolean") {
-            el.checked = safeParseBoolean(el.value) === value;
-          } else {
-            el.checked = checkedAttrLooseCompare(el.value, value);
-          }
+          el.checked = checkedAttrLooseCompare(el.value, value);
         }
       } else if (el.type === "checkbox") {
         if (Number.isInteger(value)) {
@@ -2568,15 +2596,6 @@ ${expression ? 'Expression: "' + expression + '"\n\n' : ""}`, el);
     }
     function checkedAttrLooseCompare(valueA, valueB) {
       return valueA == valueB;
-    }
-    function safeParseBoolean(rawValue) {
-      if ([1, "1", "true", "on", "yes", true].includes(rawValue)) {
-        return true;
-      }
-      if ([0, "0", "false", "off", "no", false].includes(rawValue)) {
-        return false;
-      }
-      return rawValue ? Boolean(rawValue) : null;
     }
     function isBooleanAttr(attrName) {
       const booleanAttributes = [
@@ -2664,33 +2683,34 @@ ${expression ? 'Expression: "' + expression + '"\n\n' : ""}`, el);
     }
     function entangle({ get: outerGet, set: outerSet }, { get: innerGet, set: innerSet }) {
       let firstRun = true;
-      let outerHash;
+      let outerHash, innerHash, outerHashLatest, innerHashLatest;
       let reference = effect(() => {
-        const outer = outerGet();
-        const inner = innerGet();
+        let outer, inner;
         if (firstRun) {
-          innerSet(cloneIfObject(outer));
+          outer = outerGet();
+          innerSet(JSON.parse(JSON.stringify(outer)));
+          inner = innerGet();
           firstRun = false;
-          outerHash = JSON.stringify(outer);
         } else {
-          const outerHashLatest = JSON.stringify(outer);
+          outer = outerGet();
+          inner = innerGet();
+          outerHashLatest = JSON.stringify(outer);
+          innerHashLatest = JSON.stringify(inner);
           if (outerHashLatest !== outerHash) {
-            innerSet(cloneIfObject(outer));
-            outerHash = outerHashLatest;
+            inner = innerGet();
+            innerSet(outer);
+            inner = outer;
           } else {
-            outerSet(cloneIfObject(inner));
-            outerHash = JSON.stringify(inner);
+            outerSet(JSON.parse(innerHashLatest != null ? innerHashLatest : null));
+            outer = inner;
           }
         }
-        JSON.stringify(innerGet());
-        JSON.stringify(outerGet());
+        outerHash = JSON.stringify(outer);
+        innerHash = JSON.stringify(inner);
       });
       return () => {
         release(reference);
       };
-    }
-    function cloneIfObject(value) {
-      return typeof value === "object" ? JSON.parse(JSON.stringify(value)) : value;
     }
     function plugin(callback) {
       let callbacks = Array.isArray(callback) ? callback : [callback];
@@ -2792,7 +2812,7 @@ ${expression ? 'Expression: "' + expression + '"\n\n' : ""}`, el);
       get raw() {
         return raw;
       },
-      version: "3.13.3",
+      version: "3.13.1",
       flushAndStopDeferringMutations,
       dontAutoEvaluateFunctions,
       disableEffectScheduling,
@@ -2806,7 +2826,6 @@ ${expression ? 'Expression: "' + expression + '"\n\n' : ""}`, el);
       onlyDuringClone,
       addRootSelector,
       addInitSelector,
-      interceptClone,
       addScopeToNode,
       deferMutations,
       mapAttributes,
@@ -2840,24 +2859,31 @@ ${expression ? 'Expression: "' + expression + '"\n\n' : ""}`, el);
       cloneNode,
       bound: getBinding,
       $data: scope,
-      watch,
       walk,
       data,
       bind: bind2
     };
     var alpine_default = Alpine22;
-    var import_reactivity10 = __toESM2(require_reactivity());
+    var import_reactivity9 = __toESM2(require_reactivity());
     magic("nextTick", () => nextTick);
     magic("dispatch", (el) => dispatch3.bind(dispatch3, el));
-    magic("watch", (el, { evaluateLater: evaluateLater2, cleanup: cleanup2 }) => (key, callback) => {
+    magic("watch", (el, { evaluateLater: evaluateLater2, effect: effect3 }) => (key, callback) => {
       let evaluate2 = evaluateLater2(key);
-      let getter = () => {
-        let value;
-        evaluate2((i) => value = i);
-        return value;
-      };
-      let unwatch = watch(getter, callback);
-      cleanup2(unwatch);
+      let firstTime = true;
+      let oldValue;
+      let effectReference = effect3(() => evaluate2((value) => {
+        JSON.stringify(value);
+        if (!firstTime) {
+          queueMicrotask(() => {
+            callback(value, oldValue);
+            oldValue = value;
+          });
+        } else {
+          oldValue = value;
+        }
+        firstTime = false;
+      }));
+      el._x_effects.delete(effectReference);
     });
     magic("store", getStores);
     magic("data", (el) => scope(el));
@@ -2896,31 +2922,11 @@ ${expression ? 'Expression: "' + expression + '"\n\n' : ""}`, el);
       if (!el._x_ids[name])
         el._x_ids[name] = findAndIncrementId(name);
     }
-    magic("id", (el, { cleanup: cleanup2 }) => (name, key = null) => {
-      let cacheKey = `${name}${key ? `-${key}` : ""}`;
-      return cacheIdByNameOnElement(el, cacheKey, cleanup2, () => {
-        let root = closestIdRoot(el, name);
-        let id = root ? root._x_ids[name] : findAndIncrementId(name);
-        return key ? `${name}-${id}-${key}` : `${name}-${id}`;
-      });
+    magic("id", (el) => (name, key = null) => {
+      let root = closestIdRoot(el, name);
+      let id = root ? root._x_ids[name] : findAndIncrementId(name);
+      return key ? `${name}-${id}-${key}` : `${name}-${id}`;
     });
-    interceptClone((from, to) => {
-      if (from._x_id) {
-        to._x_id = from._x_id;
-      }
-    });
-    function cacheIdByNameOnElement(el, cacheKey, cleanup2, callback) {
-      if (!el._x_id)
-        el._x_id = {};
-      if (el._x_id[cacheKey])
-        return el._x_id[cacheKey];
-      let output = callback();
-      el._x_id[cacheKey] = output;
-      cleanup2(() => {
-        delete el._x_id[cacheKey];
-      });
-      return output;
-    }
     magic("el", (el) => el);
     warnMissingPluginMagic("Focus", "focus", "focus");
     warnMissingPluginMagic("Persist", "persist", "persist");
@@ -3023,9 +3029,7 @@ ${expression ? 'Expression: "' + expression + '"\n\n' : ""}`, el);
       });
     };
     directive2("ignore", handler);
-    directive2("effect", skipDuringClone((el, { expression }, { effect: effect3 }) => {
-      effect3(evaluateLater(el, expression));
-    }));
+    directive2("effect", (el, { expression }, { effect: effect3 }) => effect3(evaluateLater(el, expression)));
     function on3(el, event, modifiers, callback) {
       let listenerTarget = el;
       let handler4 = (e) => callback(e);
@@ -3261,40 +3265,21 @@ ${expression ? 'Expression: "' + expression + '"\n\n' : ""}`, el);
           return event.detail !== null && event.detail !== void 0 ? event.detail : event.target.value;
         else if (el.type === "checkbox") {
           if (Array.isArray(currentValue)) {
-            let newValue = null;
-            if (modifiers.includes("number")) {
-              newValue = safeParseNumber(event.target.value);
-            } else if (modifiers.includes("boolean")) {
-              newValue = safeParseBoolean(event.target.value);
-            } else {
-              newValue = event.target.value;
-            }
+            let newValue = modifiers.includes("number") ? safeParseNumber(event.target.value) : event.target.value;
             return event.target.checked ? currentValue.concat([newValue]) : currentValue.filter((el2) => !checkedAttrLooseCompare2(el2, newValue));
           } else {
             return event.target.checked;
           }
         } else if (el.tagName.toLowerCase() === "select" && el.multiple) {
-          if (modifiers.includes("number")) {
-            return Array.from(event.target.selectedOptions).map((option) => {
-              let rawValue = option.value || option.text;
-              return safeParseNumber(rawValue);
-            });
-          } else if (modifiers.includes("boolean")) {
-            return Array.from(event.target.selectedOptions).map((option) => {
-              let rawValue = option.value || option.text;
-              return safeParseBoolean(rawValue);
-            });
-          }
-          return Array.from(event.target.selectedOptions).map((option) => {
+          return modifiers.includes("number") ? Array.from(event.target.selectedOptions).map((option) => {
+            let rawValue = option.value || option.text;
+            return safeParseNumber(rawValue);
+          }) : Array.from(event.target.selectedOptions).map((option) => {
             return option.value || option.text;
           });
         } else {
-          if (modifiers.includes("number")) {
-            return safeParseNumber(event.target.value);
-          } else if (modifiers.includes("boolean")) {
-            return safeParseBoolean(event.target.value);
-          }
-          return modifiers.includes("trim") ? event.target.value.trim() : event.target.value;
+          let rawValue = event.target.value;
+          return modifiers.includes("number") ? safeParseNumber(rawValue) : modifiers.includes("trim") ? rawValue.trim() : rawValue;
         }
       });
     }
@@ -3399,19 +3384,6 @@ ${expression ? 'Expression: "' + expression + '"\n\n' : ""}`, el);
         undo();
       });
     });
-    interceptClone((from, to) => {
-      if (from._x_dataStack) {
-        to._x_dataStack = from._x_dataStack;
-        to.setAttribute("data-has-alpine-state", true);
-      }
-    });
-    function shouldSkipRegisteringDataDuringClone(el) {
-      if (!isCloning)
-        return false;
-      if (isCloningLegacy)
-        return true;
-      return el.hasAttribute("data-has-alpine-state");
-    }
     directive2("show", (el, { modifiers, expression }, { effect: effect3 }) => {
       let evaluate2 = evaluateLater(el, expression);
       if (!el._x_doHide)
@@ -3677,11 +3649,6 @@ ${expression ? 'Expression: "' + expression + '"\n\n' : ""}`, el);
       let names = evaluate2(expression);
       names.forEach((name) => setIdRoot(el, name));
     });
-    interceptClone((from, to) => {
-      if (from._x_ids) {
-        to._x_ids = from._x_ids;
-      }
-    });
     mapAttributes(startingWith("@", into(prefix("on:"))));
     directive2("on", skipDuringClone((el, { value, modifiers, expression }, { cleanup: cleanup2 }) => {
       let evaluate2 = expression ? evaluateLater(el, expression) : () => {
@@ -3706,15 +3673,15 @@ ${expression ? 'Expression: "' + expression + '"\n\n' : ""}`, el);
       directive2(directiveName, (el) => warn(`You can't use [x-${directiveName}] without first installing the "${name}" plugin here: https://alpinejs.dev/plugins/${slug}`, el));
     }
     alpine_default.setEvaluator(normalEvaluator);
-    alpine_default.setReactivityEngine({ reactive: import_reactivity10.reactive, effect: import_reactivity10.effect, release: import_reactivity10.stop, raw: import_reactivity10.toRaw });
+    alpine_default.setReactivityEngine({ reactive: import_reactivity9.reactive, effect: import_reactivity9.effect, release: import_reactivity9.stop, raw: import_reactivity9.toRaw });
     var src_default = alpine_default;
     var module_default = src_default;
   }
 });
 
-// ../alpine/packages/collapse/dist/module.cjs.js
+// node_modules/@alpinejs/collapse/dist/module.cjs.js
 var require_module_cjs2 = __commonJS({
-  "../alpine/packages/collapse/dist/module.cjs.js"(exports, module) {
+  "node_modules/@alpinejs/collapse/dist/module.cjs.js"(exports, module) {
     var __defProp2 = Object.defineProperty;
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
     var __getOwnPropNames2 = Object.getOwnPropertyNames;
@@ -3832,9 +3799,9 @@ var require_module_cjs2 = __commonJS({
   }
 });
 
-// ../alpine/packages/focus/dist/module.cjs.js
+// node_modules/@alpinejs/focus/dist/module.cjs.js
 var require_module_cjs3 = __commonJS({
-  "../alpine/packages/focus/dist/module.cjs.js"(exports, module) {
+  "node_modules/@alpinejs/focus/dist/module.cjs.js"(exports, module) {
     var __create2 = Object.create;
     var __defProp2 = Object.defineProperty;
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
@@ -4772,13 +4739,13 @@ var require_module_cjs3 = __commonJS({
           if (oldValue === value)
             return;
           if (value && !oldValue) {
-            if (modifiers.includes("noscroll"))
-              undoDisableScrolling = disableScrolling();
-            if (modifiers.includes("inert"))
-              undoInert = setInert(el);
             setTimeout(() => {
+              if (modifiers.includes("inert"))
+                undoInert = setInert(el);
+              if (modifiers.includes("noscroll"))
+                undoDisableScrolling = disableScrolling();
               trap.activate();
-            }, 15);
+            });
           }
           if (!value && oldValue) {
             releaseFocus();
@@ -4829,9 +4796,9 @@ var require_module_cjs3 = __commonJS({
   }
 });
 
-// ../alpine/packages/persist/dist/module.cjs.js
+// node_modules/@alpinejs/persist/dist/module.cjs.js
 var require_module_cjs4 = __commonJS({
-  "../alpine/packages/persist/dist/module.cjs.js"(exports, module) {
+  "node_modules/@alpinejs/persist/dist/module.cjs.js"(exports, module) {
     var __defProp2 = Object.defineProperty;
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
     var __getOwnPropNames2 = Object.getOwnPropertyNames;
@@ -4857,18 +4824,7 @@ var require_module_cjs4 = __commonJS({
     function src_default(Alpine22) {
       let persist2 = () => {
         let alias;
-        let storage;
-        try {
-          storage = localStorage;
-        } catch (e) {
-          console.error(e);
-          console.warn("Alpine: $persist is using temporary storage since localStorage is unavailable.");
-          let dummy = /* @__PURE__ */ new Map();
-          storage = {
-            getItem: dummy.get.bind(dummy),
-            setItem: dummy.set.bind(dummy)
-          };
-        }
+        let storage = localStorage;
         return Alpine22.interceptor((initialValue, getter, setter, path, key) => {
           let lookup = alias || `_x_${path}`;
           let initial = storageHas(lookup, storage) ? storageGet(lookup, storage) : initialValue;
@@ -4914,9 +4870,9 @@ var require_module_cjs4 = __commonJS({
   }
 });
 
-// ../alpine/packages/intersect/dist/module.cjs.js
+// node_modules/@alpinejs/intersect/dist/module.cjs.js
 var require_module_cjs5 = __commonJS({
-  "../alpine/packages/intersect/dist/module.cjs.js"(exports, module) {
+  "node_modules/@alpinejs/intersect/dist/module.cjs.js"(exports, module) {
     var __defProp2 = Object.defineProperty;
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
     var __getOwnPropNames2 = Object.getOwnPropertyNames;
@@ -4995,9 +4951,9 @@ var require_module_cjs5 = __commonJS({
   }
 });
 
-// ../alpine/packages/anchor/dist/module.cjs.js
+// node_modules/@alpinejs/anchor/dist/module.cjs.js
 var require_module_cjs6 = __commonJS({
-  "../alpine/packages/anchor/dist/module.cjs.js"(exports, module) {
+  "node_modules/@alpinejs/anchor/dist/module.cjs.js"(exports, module) {
     var __defProp2 = Object.defineProperty;
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
     var __getOwnPropNames2 = Object.getOwnPropertyNames;
@@ -6532,9 +6488,9 @@ var require_nprogress = __commonJS({
   }
 });
 
-// ../alpine/packages/morph/dist/module.cjs.js
+// node_modules/@alpinejs/morph/dist/module.cjs.js
 var require_module_cjs7 = __commonJS({
-  "../alpine/packages/morph/dist/module.cjs.js"(exports, module) {
+  "node_modules/@alpinejs/morph/dist/module.cjs.js"(exports, module) {
     var __defProp2 = Object.defineProperty;
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
     var __getOwnPropNames2 = Object.getOwnPropertyNames;
@@ -6642,16 +6598,11 @@ var require_module_cjs7 = __commonJS({
         }
       }
       function patchChildren(from2, to) {
-        if (from2._x_teleport)
-          from2 = from2._x_teleport;
-        if (to._x_teleport)
-          to = to._x_teleport;
         let fromKeys = keyToMap(from2.children);
         let fromKeyHoldovers = {};
         let currentTo = getFirstNode(to);
         let currentFrom = getFirstNode(from2);
         while (currentTo) {
-          seedingMatchingId(currentTo, currentFrom);
           let toKey = getKey(currentTo);
           let fromKey = getKey(currentFrom);
           if (!currentFrom) {
@@ -6669,8 +6620,8 @@ var require_module_cjs7 = __commonJS({
               continue;
             }
           }
-          let isIf = (node) => node && node.nodeType === 8 && node.textContent === "[if BLOCK]><![endif]";
-          let isEnd = (node) => node && node.nodeType === 8 && node.textContent === "[if ENDBLOCK]><![endif]";
+          let isIf = (node) => node && node.nodeType === 8 && node.textContent === " __BLOCK__ ";
+          let isEnd = (node) => node && node.nodeType === 8 && node.textContent === " __ENDBLOCK__ ";
           if (isIf(currentTo) && isIf(currentFrom)) {
             let nestedIfCount = 0;
             let fromBlockStart = currentFrom;
@@ -6857,6 +6808,11 @@ var require_module_cjs7 = __commonJS({
       return parent.firstChild;
     }
     function getNextSibling(parent, reference) {
+      if (reference._x_teleport) {
+        return reference._x_teleport;
+      } else if (reference.teleportBack) {
+        return reference.teleportBack;
+      }
       let next;
       if (parent instanceof Block) {
         next = parent.nextNode(reference);
@@ -6881,13 +6837,6 @@ var require_module_cjs7 = __commonJS({
         this.setAttributeNode(attr);
       };
     }
-    function seedingMatchingId(to, from) {
-      let fromId = from && from._x_bindings && from._x_bindings.id;
-      if (!fromId)
-        return;
-      to.setAttribute("id", fromId);
-      to.id = fromId;
-    }
     function src_default(Alpine22) {
       Alpine22.morph = morph3;
     }
@@ -6895,9 +6844,9 @@ var require_module_cjs7 = __commonJS({
   }
 });
 
-// ../alpine/packages/mask/dist/module.cjs.js
+// node_modules/@alpinejs/mask/dist/module.cjs.js
 var require_module_cjs8 = __commonJS({
-  "../alpine/packages/mask/dist/module.cjs.js"(exports, module) {
+  "node_modules/@alpinejs/mask/dist/module.cjs.js"(exports, module) {
     var __defProp2 = Object.defineProperty;
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
     var __getOwnPropNames2 = Object.getOwnPropertyNames;
@@ -7199,6 +7148,14 @@ function contentIsFromDump(content) {
 function splitDumpFromContent(content) {
   let dump2 = content.match(/.*<script>Sfdump\(".+"\)<\/script>/s);
   return [dump2, content.replace(dump2, "")];
+}
+function isJsonString(str) {
+  try {
+    JSON.parse(str);
+  } catch (e) {
+    return false;
+  }
+  return true;
 }
 
 // js/events.js
@@ -7600,7 +7557,7 @@ async function sendRequest(pool) {
   respond(mutableObject);
   response = mutableObject.response;
   let content = await response.text();
-  if (!response.ok) {
+  if (!response.ok || !isJsonString(content)) {
     finishProfile({ content: "{}", failed: true });
     let preventDefault = false;
     handleFailure();
