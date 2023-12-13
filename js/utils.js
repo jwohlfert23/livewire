@@ -200,3 +200,12 @@ export function splitDumpFromContent(content) {
 
     return [dump, content.replace(dump, '')]
 }
+
+export function isJsonString(str) {
+    try {
+        JSON.parse(str)
+    } catch (e) {
+        return false
+    }
+    return true
+}

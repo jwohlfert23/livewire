@@ -1,4 +1,4 @@
-import { getCsrfToken, contentIsFromDump, splitDumpFromContent, getUpdateUri } from '@/utils'
+import { getCsrfToken, contentIsFromDump, splitDumpFromContent, getUpdateUri, isJsonString } from '@/utils'
 import { trigger, triggerAsync } from '@/events'
 import { showHtmlModal } from './modal'
 import { CommitBus } from './bus'
@@ -92,7 +92,7 @@ export async function sendRequest(pool) {
     let content = await response.text()
 
     // Handle error response...
-    if (! response.ok) {
+    if (! response.ok || ! isJsonString(content)) {
         finishProfile({ content: '{}', failed: true })
 
         let preventDefault = false
